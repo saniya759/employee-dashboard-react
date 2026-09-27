@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Employee Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<style>
+:root{
+  --ink:#1B1D23; --paper:#F5F6F8; --card:#FFFFFF; --line:#E4E6EB;
+  --accent:#3B5BFF; --muted:#6B7280; --danger:#E0473E;
+}
+*{box-sizing:border-box;}
+body{margin:0; font-family:'Inter',system-ui,sans-serif; background:var(--paper); color:var(--ink);
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);}
+#root{display:flex; min-height:100vh;}
+.sidebar{width:220px; background:var(--ink); color:#fff; padding:24px 18px; flex-shrink:0;}
+.sidebar h1{font-size:1.2rem; margin:0 0 30px;}
+.sidebar nav a{display:block; color:#B8BCC8; text-decoration:none; padding:10px 12px; border-radius:6px; margin-bottom:4px; font-size:0.92rem;}
+.sidebar nav a.active{background:var(--accent); color:#fff;}
+.main{flex:1; padding:28px 32px; overflow-x:auto;}
+.topbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px;}
+.topbar h2{margin:0; font-size:1.4rem;}
+.btn{background:var(--accent); color:#fff; border:none; padding:10px 18px; border-radius:6px; font-weight:600; cursor:pointer; font-size:0.9rem;}
+.btn.secondary{background:transparent; color:var(--muted); border:1px solid var(--line);}
+.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin-bottom:26px;}
+.stat-card{background:var(--card); border:1px solid var(--line); border-radius:8px; padding:18px;}
+.stat-card .num{font-size:1.7rem; font-weight:700;}
+.stat-card .label{color:var(--muted); font-size:0.85rem; margin-top:4px;}
+.toolbar{display:flex; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap;}
+.search{padding:9px 14px; border:1px solid var(--line); border-radius:6px; width:240px; max-width:100%; font-size:0.9rem;}
+table{width:100%; border-collapse:collapse; background:var(--card); border:1px solid var(--line); border-radius:8px; overflow:hidden;}
+th, td{padding:12px 14px; text-align:left; font-size:0.88rem; border-bottom:1px solid var(--line);}
+th{color:var(--muted); font-weight:600; cursor:pointer; user-select:none; white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+.badge{padding:3px 10px; border-radius:20px; font-size:0.78rem; font-weight:600;}
+.badge.active{background:#E4F7EC; color:#1E9E5B;}
+.badge.leave{background:#FDEEDC; color:#C9740E;}
+.dept{color:var(--muted);}
+.pagination{display:flex; gap:6px; justify-content:flex-end; margin-top:14px;}
+.pagination button{width:32px; height:32px; border:1px solid var(--line); background:#fff; border-radius:6px; cursor:pointer;}
+.pagination button.active{background:var(--accent); color:#fff; border-color:var(--accent);}
+.overlay{position:fixed; inset:0; background:rgba(0,0,0,0.35); display:flex; align-items:center; justify-content:center; z-index:10;}
+.modal{background:#fff; border-radius:10px; padding:26px; width:360px; max-width:90vw;}
+.modal h3{margin:0 0 16px;}
+.modal label{display:block; font-size:0.82rem; font-weight:600; margin:12px 0 5px;}
+.modal input, .modal select{width:100%; padding:9px 12px; border:1px solid var(--line); border-radius:6px; font-size:0.9rem;}
+.modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:20px;}
+.icon-btn{background:none; border:none; color:var(--danger); cursor:pointer; font-size:0.85rem; font-weight:600;}
+@media (max-width: 760px){
+  #root{flex-direction:column;}
+  .sidebar{width:100%; display:flex; align-items:center; justify-content:space-between; padding:14px 18px;}
+  .sidebar nav{display:flex; gap:6px;}
+  .sidebar h1{margin:0;}
+  .main{padding:20px;}
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--paper:#0F1115; --card:#181B21; --line:#2A2E37; --ink:#F0F1F3; --muted:#9AA0AE;}
+}
+:root[data-theme="dark"]{--paper:#0F1115; --card:#181B21; --line:#2A2E37; --ink:#F0F1F3; --muted:#9AA0AE;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+const SEED = [
+  {id:1, name:"Ananya Sharma", dept:"Engineering", role:"Frontend Developer", email:"ananya.s@company.com", salary:62000, status:"Active"},
+  {id:2, name:"Rohan Mehta", dept:"Sales", role:"Sales Executive", email:"rohan.m@company.com", salary:48000, status:"Active"},
+  {id:3, name:"Priya Nair", dept:"HR", role:"HR Manager", email:"priya.n@company.com", salary:70000, status:"On Leave"},
+  {id:4, name:"Karan Verma", dept:"Engineering", role:"Backend Developer", email:"karan.v@company.com", salary:68000, status:"Active"},
+  {id:5, name:"Sneha Kapoor", dept:"Marketing", role:"Marketing Lead", email:"sneha.k@company.com", salary:65000, status:"Active"},
+  {id:6, name:"Vikram Rao", dept:"Engineering", role:"QA Engineer", email:"vikram.r@company.com", salary:52000, status:"Active"},
+  {id:7, name:"Ishita Joshi", dept:"Sales", role:"Sales Manager", email:"ishita.j@company.com", salary:74000, status:"On Leave"},
+  {id:8, name:"Aditya Singh", dept:"Marketing", role:"Content Strategist", email:"aditya.s@company.com", salary:46000, status:"Active"},
+  {id:9, name:"Neha Gupta", dept:"HR", role:"Recruiter", email:"neha.g@company.com", salary:44000, status:"Active"},
+  {id:10, name:"Arjun Desai", dept:"Engineering", role:"DevOps Engineer", email:"arjun.d@company.com", salary:71000, status:"Active"},
+  {id:11, name:"Meera Iyer", dept:"Sales", role:"Sales Executive", email:"meera.i@company.com", salary:47000, status:"Active"},
+  {id:12, name:"Rahul Bhatt", dept:"Marketing", role:"SEO Specialist", email:"rahul.b@company.com", salary:43000, status:"On Leave"},
+];
+
+const PAGE_SIZE = 6;
+const DEPTS = ["Engineering","Sales","HR","Marketing"];
+
+function StatCard({num, label}){
+  return <div className="stat-card"><div className="num">{num}</div><div className="label">{label}</div></div>;
+}
+
+function AddModal({onClose, onAdd}){
+  const [form, setForm] = useState({name:"", dept:"Engineering", role:"", email:"", salary:""});
+  function set(k,v){ setForm(f => ({...f, [k]:v})); }
+  function submit(e){
+    e.preventDefault();
+    if(!form.name.trim() || !form.role.trim() || !form.email.trim()) return;
+    onAdd({...form, id:Date.now(), salary:Number(form.salary)||0, status:"Active"});
+    onClose();
+  }
+  return (
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <h3>Add Employee</h3>
+        <form onSubmit={submit}>
+          <label>Name</label>
+          <input value={form.name} onChange={e=>set('name',e.target.value)} placeholder="Full name" required/>
+          <label>Department</label>
+          <select value={form.dept} onChange={e=>set('dept',e.target.value)}>
+            {DEPTS.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+          <label>Role</label>
+          <input value={form.role} onChange={e=>set('role',e.target.value)} placeholder="e.g. Frontend Developer" required/>
+          <label>Email</label>
+          <input type="email" value={form.email} onChange={e=>set('email',e.target.value)} placeholder="name@company.com" required/>
+          <label>Salary</label>
+          <input type="number" value={form.salary} onChange={e=>set('salary',e.target.value)} placeholder="e.g. 50000"/>
+          <div className="modal-actions">
+            <button type="button" className="btn secondary" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn">Add</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function App(){
+  const [employees, setEmployees] = useState(SEED);
+  const [query, setQuery] = useState("");
+  const [sortKey, setSortKey] = useState("name");
+  const [sortDir, setSortDir] = useState(1);
+  const [page, setPage] = useState(1);
+  const [showModal, setShowModal] = useState(false);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    let rows = employees.filter(e =>
+      e.name.toLowerCase().includes(q) || e.dept.toLowerCase().includes(q) || e.role.toLowerCase().includes(q)
+    );
+    rows.sort((a,b) => {
+      const av = a[sortKey], bv = b[sortKey];
+      if(typeof av === 'number') return (av - bv) * sortDir;
+      return String(av).localeCompare(String(bv)) * sortDir;
+    });
+    return rows;
+  }, [employees, query, sortKey, sortDir]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageRows = filtered.slice((page-1)*PAGE_SIZE, page*PAGE_SIZE);
+
+  function toggleSort(key){
+    if(sortKey === key){ setSortDir(d => -d); }
+    else { setSortKey(key); setSortDir(1); }
+  }
+  function removeEmployee(id){
+    setEmployees(es => es.filter(e => e.id !== id));
+  }
+  function addEmployee(emp){
+    setEmployees(es => [emp, ...es]);
+    setPage(1);
+  }
+
+  const activeCount = employees.filter(e => e.status === "Active").length;
+  const avgSalary = Math.round(employees.reduce((s,e)=>s+e.salary,0) / (employees.length||1));
+
+  return (
+    <React.Fragment>
+      <div className="sidebar">
+        <h1>StaffHub</h1>
+        <nav>
+          <a className="active" href="#">Dashboard</a>
+        </nav>
+      </div>
+      <div className="main">
+        <div className="topbar">
+          <h2>Employee Dashboard</h2>
+          <button className="btn" onClick={()=>setShowModal(true)}>+ Add Employee</button>
+        </div>
+
+        <div className="stats">
+          <StatCard num={employees.length} label="Total Employees" />
+          <StatCard num={DEPTS.length} label="Departments" />
+          <StatCard num={activeCount} label="Active" />
+          <StatCard num={"₹"+avgSalary.toLocaleString('en-IN')} label="Avg. Salary" />
+        </div>
+
+        <div className="toolbar">
+          <input className="search" placeholder="Search by name, dept or role..."
+            value={query} onChange={e=>{setQuery(e.target.value); setPage(1);}} />
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th onClick={()=>toggleSort('name')}>Name {sortKey==='name' ? (sortDir>0?'▲':'▼') : ''}</th>
+              <th onClick={()=>toggleSort('dept')}>Department {sortKey==='dept' ? (sortDir>0?'▲':'▼') : ''}</th>
+              <th>Role</th>
+              <th>Email</th>
+              <th onClick={()=>toggleSort('salary')}>Salary {sortKey==='salary' ? (sortDir>0?'▲':'▼') : ''}</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {pageRows.map(e => (
+              <tr key={e.id}>
+                <td>{e.name}</td>
+                <td className="dept">{e.dept}</td>
+                <td>{e.role}</td>
+                <td>{e.email}</td>
+                <td>₹{e.salary.toLocaleString('en-IN')}</td>
+                <td><span className={"badge " + (e.status==='Active'?'active':'leave')}>{e.status}</span></td>
+                <td><button className="icon-btn" onClick={()=>removeEmployee(e.id)}>Remove</button></td>
+              </tr>
+            ))}
+            {pageRows.length===0 && (
+              <tr><td colSpan="7" style={{textAlign:'center', color:'var(--muted)', padding:'24px'}}>No employees found.</td></tr>
+            )}
+          </tbody>
+        </table>
+
+        <div className="pagination">
+          {Array.from({length: totalPages}, (_,i)=>i+1).map(n => (
+            <button key={n} className={n===page ? 'active' : ''} onClick={()=>setPage(n)}>{n}</button>
+          ))}
+        </div>
+
+        {showModal && <AddModal onClose={()=>setShowModal(false)} onAdd={addEmployee} />}
+      </div>
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
