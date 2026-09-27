@@ -16,4 +16,5 @@ React employee management dashboard — search, sort, pagination, and add/remove
 React 18, Babel Standalone (loaded via CDN — no build step needed)
 
 ## Live Demo
+https://saniya759.github.io/employee-dashboard-react/employee-dashboard.html
 
